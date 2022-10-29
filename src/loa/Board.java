@@ -21,16 +21,11 @@ public class Board {
     private final Color END_CELL = Color.rgb(0, 255, 0, .5);
     private final Color IN_PATH_CELL = Color.rgb(0, 0, 255, .2);
     private final Color SELECTED_CELL = Color.rgb(0, 255, 0, .2);
-    private final Color BLACK_PIECE = Color.rgb(0, 0, 0);
-    private final Color WHITE_PIECE = Color.rgb(255, 255, 255);
 
     private class CheckerBox {
         public Optional<Color> overriddenBackgroundColor = Optional.empty();
         public Optional<Color> piece = Optional.empty();
 
-        public CheckerBox() {
-
-        }
     }
 
     private int dimension;
@@ -88,11 +83,11 @@ public class Board {
     }
 
     void addBlackPiece(int i, int j) {
-        grid[i][j].piece = Optional.of(BLACK_PIECE);
+        addPiece(i, j, Piece.BLACK);
     }
 
     void addWhitePiece(int i, int j) {
-        grid[i][j].piece = Optional.of(WHITE_PIECE);
+        addPiece(i, j, Piece.WHITE);
     }
 
     void addInPath(int i, int j) {
@@ -126,8 +121,8 @@ public class Board {
                 removeOverriddenBackground(i, j);
     }
 
-    void addPiece(int i, int j, Color pieceColor) {
-        grid[i][j].piece = Optional.of(pieceColor);
+    void addPiece(int i, int j, Piece piece) {
+        grid[i][j].piece = Optional.of(piece.pieceColor);
     }
 
 }

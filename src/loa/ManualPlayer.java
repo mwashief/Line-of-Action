@@ -8,8 +8,8 @@ public class ManualPlayer extends Player {
     ArrayList<Pair<Integer, Integer>> destination;
     Pair<Integer, Integer> source;
 
-    public ManualPlayer(int col) {
-        super(col);
+    public ManualPlayer(Piece piece) {
+        super(piece);
         destination = new ArrayList<>();
     }
 

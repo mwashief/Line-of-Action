@@ -10,19 +10,18 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.AnchorPane;
 import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
-import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
-import javafx.stage.StageStyle;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 
 public class Main extends Application {
     public static Stage gStage;
     public static Board gBoard;
-    public static int dimension = 8;
+    final public static int dimension = 6;
     public static GameState gameState;
     public static Player[] players = new Player[2];
     public static Player currentPlayer;
@@ -34,11 +33,11 @@ public class Main extends Application {
         primaryStage.setHeight(600);
         gBoard = new Board(dimension);
         gameState = new GameState(dimension);
-        players[0] = new ManualPlayer(2);
-        players[1] = new AIPlayer(3);
+        players[0] = new ManualPlayer(Piece.BLACK);
+        players[1] = new AIPlayer(Piece.WHITE);
         currentPlayer = players[0];
 
-        refresh(primaryStage, getBoardScene(gBoard));
+        refresh(primaryStage, getBoardScene());
         Platform.runLater(() -> routine(-1, -1));
     }
 
@@ -49,10 +48,8 @@ public class Main extends Application {
         stage.show();
     }
 
-    public static Scene getBoardScene(Board boardObj) {
-        Scene scene = new Scene((Parent) getBoardNode(gBoard));
-        scene.setFill(Color.BEIGE);
-        return scene;
+    public static Scene getBoardScene() {
+        return new Scene((Parent) getBoardNode(gBoard));
     }
 
     public static Node getBoardNode(Board boardObj) {
@@ -76,26 +73,24 @@ public class Main extends Application {
             int j2 = result.getValue().getValue();
 
             gBoard.removePiece(i1, j1);
-            gBoard.addPiece(i2, j2, currentPlayer.getCol());
-            //System.out.println(gameState);
-            System.out.println(currentPlayer.getCol() + " moved from (" + i1 + "," + j1 + ") to (" + i2 + "," + j2 + ")");
+            gBoard.addPiece(i2, j2, currentPlayer.getPiece());
+            System.out.println(currentPlayer.getPiece() + " moved from (" + i1 + "," + j1 + ") to (" + i2 + "," + j2 + ")");
             gameState.transferPiece(i1, j1, i2, j2);
-            //System.out.println(gameState);
-            //System.out.println("=============================");
 
-            if (gameState.isWon(currentPlayer.getCol())) {
-                refresh(gStage, getWinningScene(currentPlayer.getCol()));
+
+            if (gameState.isWon(currentPlayer.getPiece())) {
+                refresh(gStage, getWinningScene(currentPlayer.getPiece()));
                 return;
-            } else if (gameState.isWon(5 - currentPlayer.getCol())) {
-                refresh(gStage, getWinningScene(5 - currentPlayer.getCol()));
+            } else if (gameState.isWon(currentPlayer.getPiece().getOtherPiece())) {
+                refresh(gStage, getWinningScene(currentPlayer.getPiece().getOtherPiece()));
                 return;
             }
             currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
-            refresh(gStage, getBoardScene(gBoard));
+            refresh(gStage, getBoardScene());
             Platform.runLater(() -> routine(-1, -1));
 
         } else if (currentPlayer instanceof AIPlayer || !gameState.isLegal(i, j)) { //do nothing
-        } else if (currentPlayer.getCol() == gameState.getState(i, j)) {
+        } else if (Optional.of(currentPlayer.getPiece()).equals(gameState.getState(i, j))) {
             ArrayList<ArrayList<Pair<Integer, Integer>>> all = gameState.findAll(i, j);
             if (all != null) {
                 gBoard.addSelected(i, j);
@@ -111,20 +106,20 @@ public class Main extends Application {
                 ((ManualPlayer) currentPlayer).setDestination(all.get(1));
                 ((ManualPlayer) currentPlayer).setSource(new Pair<>(i, j));
             }
-            refresh(gStage, getBoardScene(gBoard));
+            refresh(gStage, getBoardScene());
         } else {
             boolean given = false;
             for (Pair<Integer, Integer> p : ((ManualPlayer) currentPlayer).getDestination()) {
                 if (i == p.getKey() && j == p.getValue()) {
                     gBoard.removePiece(((ManualPlayer) currentPlayer).getX(), ((ManualPlayer) currentPlayer).getY());
-                    gBoard.addPiece(i, j, currentPlayer.getCol());
+                    gBoard.addPiece(i, j, currentPlayer.getPiece());
                     gameState.transferPiece(((ManualPlayer) currentPlayer).getX(), ((ManualPlayer) currentPlayer).getY(), i, j);
 
-                    if (gameState.isWon(currentPlayer.getCol())) {
-                        refresh(gStage, getWinningScene(currentPlayer.getCol()));
+                    if (gameState.isWon(currentPlayer.getPiece())) {
+                        refresh(gStage, getWinningScene(currentPlayer.getPiece()));
                         return;
-                    } else if (gameState.isWon(5 - currentPlayer.getCol())) {
-                        refresh(gStage, getWinningScene(5 - currentPlayer.getCol()));
+                    } else if (gameState.isWon(currentPlayer.getPiece().getOtherPiece())) {
+                        refresh(gStage, getWinningScene(currentPlayer.getPiece().getOtherPiece()));
                         return;
                     }
                     given = true;
@@ -133,18 +128,18 @@ public class Main extends Application {
             }
             ((ManualPlayer) currentPlayer).setDestination(new ArrayList<>());
             ((ManualPlayer) currentPlayer).setSource(null);
-            refresh(gStage, getBoardScene(gBoard));
+            refresh(gStage, getBoardScene());
 
             if (given) currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
             Platform.runLater(() -> routine(-1, -1));
         }
     }
 
-    public static Scene getWinningScene(int i) {
+    public static Scene getWinningScene(Piece piece) {
         String[] s = {"Black", "White"};
         VBox vBox = new VBox();
-        vBox.setAlignment(Pos.BASELINE_CENTER);
-        Label label = new Label(s[i - 2] + " Won");
+        vBox.setAlignment(Pos.CENTER);
+        Label label = new Label(piece.getName() + " Won");
         label.setFont(new Font(35.0));
         vBox.getChildren().add(label);
         StackPane stackPane = new StackPane();

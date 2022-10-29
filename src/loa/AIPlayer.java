@@ -3,11 +3,12 @@ package loa;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class AIPlayer extends Player {
 
-    public AIPlayer(int col) {
-        super(col);
+    public AIPlayer(Piece piece) {
+        super(piece);
     }
 
     @Override
@@ -16,7 +17,7 @@ public class AIPlayer extends Player {
         int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
         for (int i = 0; i < Main.dimension; i++)
             for (int j = 0; j < Main.dimension; j++)
-                if (state.getState(i, j) == col) {
+                if (state.getState(i, j).equals(Optional.of(piece))) {
                     ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
@@ -35,17 +36,17 @@ public class AIPlayer extends Player {
     }
 
     int maxValue(GameState state, int alpha, int beta, int level) {
-        if (state.isWon(5 - col))
+        if (state.isWon(piece.getOtherPiece()))
             return Integer.MIN_VALUE + 1;
-        if (state.isWon(col))
+        if (state.isWon(piece))
             return Integer.MAX_VALUE;
-        if (level >= 0) return state.utility(col) - state.utility(5 - col);
+        if (level >= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
 
 
         int v = Integer.MIN_VALUE + 1;
         for (int i = 0; i < Main.dimension; i++)
             for (int j = 0; j < Main.dimension; j++)
-                if (state.getState(i, j) == col) {
+                if (state.getState(i, j).equals(Optional.of(piece))) {
                     ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
@@ -59,16 +60,16 @@ public class AIPlayer extends Player {
     }
 
     int minValue(GameState state, int alpha, int beta, int level) {
-        if (state.isWon(col))
+        if (state.isWon(piece))
             return Integer.MAX_VALUE;
-        if (state.isWon(5 - col))
+        if (state.isWon(piece.getOtherPiece()))
             return Integer.MIN_VALUE + 1;
-        if (level >= 0) return state.utility(col) - state.utility(5 - col);
+        if (level >= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
 
         int v = Integer.MAX_VALUE;
         for (int i = 0; i < Main.dimension; i++)
             for (int j = 0; j < Main.dimension; j++)
-                if (state.getState(i, j) == 5 - col) {
+                if (state.getState(i, j).equals(Optional.of(piece.getOtherPiece()))) {
                     ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
