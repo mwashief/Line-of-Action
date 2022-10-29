@@ -1,6 +1,7 @@
 package loa;
 
 
+import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
@@ -10,23 +11,43 @@ import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
+import java.util.Optional;
+
 
 public class Board {
+    private final Color WHITE_CELL = Color.rgb(171, 143, 123);
+    private final Color BLACK_CELL = Color.rgb(224, 172, 134);
+    private final Color CAPTURING_CELL = Color.rgb(255, 0, 0, .5);
+    private final Color END_CELL = Color.rgb(0, 255, 0, .5);
+    private final Color IN_PATH_CELL = Color.rgb(0, 0, 255, .2);
+    private final Color SELECTED_CELL = Color.rgb(0, 255, 0, .2);
+    private final Color BLACK_PIECE = Color.rgb(0, 0, 0);
+    private final Color WHITE_PIECE = Color.rgb(255, 255, 255);
+
+    private class CheckerBox {
+        public Optional<Color> overriddenBackgroundColor = Optional.empty();
+        public Optional<Color> piece = Optional.empty();
+
+        public CheckerBox() {
+
+        }
+    }
+
     private int dimension;
-    private int[][] checkerBox;
+    private CheckerBox[][] grid;
 
     public Board(int dimension) {
         this.dimension = dimension;
-        checkerBox = new int[dimension][dimension];
+        grid = new CheckerBox[dimension][dimension];
+
         for (int i = 0; i < dimension; i++)
             for (int j = 0; j < dimension; j++)
-                checkerBox[i][j] = 1;
-
+                grid[i][j] = new CheckerBox();
         for (int i = 1; i < dimension - 1; i++) {
-            addWhite(i, 0);
-            addWhite(i, dimension - 1);
-            addBlack(0, i);
-            addBlack(dimension - 1, i);
+            addWhitePiece(i, 0);
+            addWhitePiece(i, dimension - 1);
+            addBlackPiece(0, i);
+            addBlackPiece(dimension - 1, i);
         }
     }
 
@@ -37,53 +58,28 @@ public class Board {
         for (int i = 0; i < dimension; i++)
             for (int j = 0; j < dimension; j++) {
                 stackPanes[i][j] = new StackPane();
-                Rectangle checker = new Rectangle();
-                checker.widthProperty().bind(gridPane.widthProperty().divide(dimension));
-                checker.heightProperty().bind(gridPane.heightProperty().divide(dimension));
-                checker.setFill((i + j) % 2 == 0 ? Color.rgb(224, 172, 134) : Color.rgb(171, 143, 123));
-                stackPanes[i][j].getChildren().add(checker);
-                if (checkerBox[i][j] % 7 == 0) {
-                    Rectangle rectangle = new Rectangle();
-                    rectangle.widthProperty().bind(gridPane.widthProperty().divide(dimension));
-                    rectangle.heightProperty().bind(gridPane.heightProperty().divide(dimension));
-                    rectangle.setFill(Color.rgb(255, 0, 100, .5));
-                    stackPanes[i][j].getChildren().add(rectangle);
-                } else if (checkerBox[i][j] % 13 == 0) {
-                    Rectangle rectangle = new Rectangle();
-                    rectangle.widthProperty().bind(gridPane.widthProperty().divide(dimension));
-                    rectangle.heightProperty().bind(gridPane.heightProperty().divide(dimension));
-                    rectangle.setFill(Color.rgb(0, 255, 200, .5));
-                    stackPanes[i][j].getChildren().add(rectangle);
-                } else if (checkerBox[i][j] % 5 == 0) {
-                    Rectangle rectangle = new Rectangle();
-                    rectangle.widthProperty().bind(gridPane.widthProperty().divide(dimension));
-                    rectangle.heightProperty().bind(gridPane.heightProperty().divide(dimension));
-                    rectangle.setFill(Color.rgb(0, 0, 255, .2));
-                    stackPanes[i][j].getChildren().add(rectangle);
-                } else if (checkerBox[i][j] % 11 == 0) {
-                    Rectangle rectangle = new Rectangle();
-                    rectangle.widthProperty().bind(gridPane.widthProperty().divide(dimension));
-                    rectangle.heightProperty().bind(gridPane.heightProperty().divide(dimension));
-                    rectangle.setFill(Color.rgb(0, 255, 0, .2));
-                    stackPanes[i][j].getChildren().add(rectangle);
-                }
-                if (checkerBox[i][j] % 2 == 0) {
-                    Circle circle = new Circle();
-                    circle.setFill(Color.BLACK);
-                    circle.radiusProperty().bind(gridPane.widthProperty().divide(2.4 * dimension));
-                    stackPanes[i][j].getChildren().add(circle);
-                } else if (checkerBox[i][j] % 3 == 0) {
-                    Circle circle = new Circle();
-                    circle.setFill(Color.WHITE);
-                    circle.radiusProperty().bind(gridPane.widthProperty().divide(2.4 * dimension));
-                    stackPanes[i][j].getChildren().add(circle);
-                }
+                Rectangle rectangle = new Rectangle();
+                rectangle.widthProperty().bind(gridPane.widthProperty().divide(dimension));
+                rectangle.heightProperty().bind(gridPane.heightProperty().divide(dimension));
+                rectangle.setFill(
+                        grid[i][j].overriddenBackgroundColor
+                                .orElse((i + j) % 2 == 0 ? WHITE_CELL : BLACK_CELL)
+                );
+                stackPanes[i][j].getChildren().add(rectangle);
+
                 int finalI = i;
                 int finalJ = j;
+
+                grid[i][j].piece.ifPresent(color -> {
+                    Circle circle = new Circle();
+                    circle.setFill(color);
+                    circle.radiusProperty().bind(gridPane.widthProperty().divide(2.4 * dimension));
+                    stackPanes[finalI][finalJ].getChildren().add(circle);
+                });
                 stackPanes[i][j].addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent e) {
-                        doIt(finalI, finalJ);
+                        Platform.runLater(() -> Main.routine(finalI, finalJ));
                     }
                 });
                 gridPane.add(stackPanes[i][j], j, i);
@@ -91,83 +87,47 @@ public class Board {
         return gridPane;
     }
 
-    void addBlack(int i, int j) {
-        while (checkerBox[i][j] % 3 == 0)
-            checkerBox[i][j] /= 3;
-        checkerBox[i][j] *= 2;
+    void addBlackPiece(int i, int j) {
+        grid[i][j].piece = Optional.of(BLACK_PIECE);
     }
 
-    void addWhite(int i, int j) {
-        while (checkerBox[i][j] % 2 == 0)
-            checkerBox[i][j] /= 2;
-        checkerBox[i][j] *= 3;
+    void addWhitePiece(int i, int j) {
+        grid[i][j].piece = Optional.of(WHITE_PIECE);
     }
 
     void addInPath(int i, int j) {
-        checkerBox[i][j] *= 5;
+        grid[i][j].overriddenBackgroundColor = Optional.of(IN_PATH_CELL);
     }
 
     void addCapturing(int i, int j) {
-        checkerBox[i][j] *= 7;
+        grid[i][j].overriddenBackgroundColor = Optional.of(CAPTURING_CELL);
     }
 
     void addSelected(int i, int j) {
-        checkerBox[i][j] *= 11;
+        grid[i][j].overriddenBackgroundColor = Optional.of(SELECTED_CELL);
     }
 
     void addEnd(int i, int j) {
-        checkerBox[i][j] *= 13;
+        grid[i][j].overriddenBackgroundColor = Optional.of(END_CELL);
     }
 
     void removePiece(int i, int j) {
-        checkerBox[i][j] = 1;
+        grid[i][j].piece = Optional.empty();
     }
 
-    void removeInPath(int i, int j) {
-        while (checkerBox[i][j] % 5 == 0)
-            checkerBox[i][j] /= 5;
+    void removeOverriddenBackground(int i, int j) {
+        grid[i][j].overriddenBackgroundColor = Optional.empty();
     }
 
-    void removeCapturing(int i, int j) {
-        while (checkerBox[i][j] % 7 == 0)
-            checkerBox[i][j] /= 7;
-    }
-
-    void removeSelected(int i, int j) {
-        while (checkerBox[i][j] % 11 == 0)
-            checkerBox[i][j] /= 11;
-    }
-
-    void removeEnd(int i, int j) {
-        while (checkerBox[i][j] % 13 == 0)
-            checkerBox[i][j] /= 13;
-    }
-
-    int getPiece(int i, int j) {
-        if (checkerBox[i][j] % 2 == 0) return 2;
-        if (checkerBox[i][j] % 3 == 0) return 3;
-        return 0;
-    }
 
     void makePlain() {
         for (int i = 0; i < dimension; i++)
-            for (int j = 0; j < dimension; j++) {
-                removeInPath(i, j);
-                removeCapturing(i, j);
-                removeSelected(i, j);
-                removeEnd(i, j);
-            }
+            for (int j = 0; j < dimension; j++)
+                removeOverriddenBackground(i, j);
     }
 
-    void doIt(int i, int j) {
-        Main.routine(i, j);
-    }
-
-    void addPiece(int i, int j, int k) {
-        int other = 5 - k;
-        while (checkerBox[i][j] % other == 0)
-            checkerBox[i][j] /= other;
-        checkerBox[i][j] *= k;
+    void addPiece(int i, int j, Color pieceColor) {
+        grid[i][j].piece = Optional.of(pieceColor);
     }
 
 }
