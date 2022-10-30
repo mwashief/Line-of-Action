@@ -21,7 +21,7 @@ import java.util.Optional;
 public class Main extends Application {
     public static Stage gStage;
     public static Board gBoard;
-    final public static int dimension = 6;
+    final public static int dimension = 5;
     public static GameState gameState;
     public static Player[] players = new Player[2];
     public static Player currentPlayer;
@@ -34,7 +34,7 @@ public class Main extends Application {
         gBoard = new Board(dimension);
         gameState = new GameState(dimension);
         players[0] = new ManualPlayer(Piece.BLACK);
-        players[1] = new AIPlayer(Piece.WHITE);
+        players[1] = new ManualPlayer(Piece.WHITE);
         currentPlayer = players[0];
 
         refresh(primaryStage, getBoardScene());
@@ -45,6 +45,7 @@ public class Main extends Application {
         stage.minWidthProperty().bind(scene.heightProperty());
         stage.minHeightProperty().bind(scene.widthProperty());
         stage.setScene(scene);
+        stage.setTitle(currentPlayer.getPiece().getName() + "'s turn");
         stage.show();
     }
 
@@ -66,7 +67,7 @@ public class Main extends Application {
     public static void routine(int i, int j) {
         gBoard.makePlain();
         if (currentPlayer instanceof AIPlayer && !gameState.isLegal(i, j)) {
-            Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result = currentPlayer.move(new GameState(gameState));
+            Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result = currentPlayer.move(new GameState(gameState), gBoard);
             int i1 = result.getKey().getKey();
             int j1 = result.getKey().getValue();
             int i2 = result.getValue().getKey();
@@ -86,8 +87,8 @@ public class Main extends Application {
                 return;
             }
             currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
-            refresh(gStage, getBoardScene());
             Platform.runLater(() -> routine(-1, -1));
+            refresh(gStage, getBoardScene());
 
         } else if (currentPlayer instanceof AIPlayer || !gameState.isLegal(i, j)) { //do nothing
         } else if (Optional.of(currentPlayer.getPiece()).equals(gameState.getState(i, j))) {
@@ -128,15 +129,14 @@ public class Main extends Application {
             }
             ((ManualPlayer) currentPlayer).setDestination(new ArrayList<>());
             ((ManualPlayer) currentPlayer).setSource(null);
-            refresh(gStage, getBoardScene());
 
             if (given) currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
             Platform.runLater(() -> routine(-1, -1));
+            refresh(gStage, getBoardScene());
         }
     }
 
     public static Scene getWinningScene(Piece piece) {
-        String[] s = {"Black", "White"};
         VBox vBox = new VBox();
         vBox.setAlignment(Pos.CENTER);
         Label label = new Label(piece.getName() + " Won");

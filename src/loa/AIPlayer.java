@@ -12,7 +12,7 @@ public class AIPlayer extends Player {
     }
 
     @Override
-    public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state) {
+    public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state, Board board) {
         int i1 = 0, j1 = 0, i2 = 0, j2 = 0;
         int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
         for (int i = 0; i < Main.dimension; i++)
@@ -22,7 +22,7 @@ public class AIPlayer extends Player {
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
                         g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
-                        int x = minValue(g, alpha + 1, beta, -2);
+                        int x = minValue(g, alpha + 1, beta, 5);
                         if (x > alpha) {
                             alpha = x;
                             i1 = i;
@@ -40,7 +40,7 @@ public class AIPlayer extends Player {
             return Integer.MIN_VALUE + 1;
         if (state.isWon(piece))
             return Integer.MAX_VALUE;
-        if (level >= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
+        if (level <= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
 
 
         int v = Integer.MIN_VALUE + 1;
@@ -51,7 +51,7 @@ public class AIPlayer extends Player {
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
                         g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
-                        v = Integer.max(v, minValue(g, alpha, beta, level + 1) - 1);
+                        v = Integer.max(v, minValue(g, alpha, beta, level - 1) - 1);
                         if (v >= beta) return v;
                         alpha = Integer.max(alpha, v);
                     }
@@ -64,7 +64,7 @@ public class AIPlayer extends Player {
             return Integer.MAX_VALUE;
         if (state.isWon(piece.getOtherPiece()))
             return Integer.MIN_VALUE + 1;
-        if (level >= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
+        if (level <= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
 
         int v = Integer.MAX_VALUE;
         for (int i = 0; i < Main.dimension; i++)
@@ -74,7 +74,7 @@ public class AIPlayer extends Player {
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
                         g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
-                        v = Integer.min(v, maxValue(g, alpha, beta, level + 1));
+                        v = Integer.min(v, maxValue(g, alpha, beta, level - 1));
                         if (v <= alpha) return v;
                         beta = Integer.min(beta, v);
                     }

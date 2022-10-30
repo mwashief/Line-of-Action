@@ -14,7 +14,7 @@ public class ManualPlayer extends Player {
     }
 
     @Override
-    public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state) {
+    public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state, Board board) {
         return null;
     }
 
@@ -24,10 +24,6 @@ public class ManualPlayer extends Player {
 
     public void setDestination(ArrayList<Pair<Integer, Integer>> destination) {
         this.destination = destination;
-    }
-
-    public Pair<Integer, Integer> getSource() {
-        return source;
     }
 
     public void setSource(Pair<Integer, Integer> source) {

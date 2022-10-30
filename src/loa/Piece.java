@@ -8,7 +8,7 @@ public enum Piece {
 
     public final Color pieceColor;
 
-    private Piece(Color color) {
+    Piece(Color color) {
         this.pieceColor = color;
     }
 

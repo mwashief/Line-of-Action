@@ -1,6 +1,5 @@
 package loa;
 
-
 import javafx.application.Platform;
 import javafx.event.EventHandler;
 import javafx.scene.Node;
@@ -12,7 +11,6 @@ import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
 
 import java.util.Optional;
-
 
 public class Board {
     private final Color WHITE_CELL = Color.rgb(171, 143, 123);
@@ -28,7 +26,7 @@ public class Board {
 
     }
 
-    private int dimension;
+    private final int dimension;
     private CheckerBox[][] grid;
 
     public Board(int dimension) {
