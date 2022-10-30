@@ -67,7 +67,7 @@ public class Main extends Application {
     public static void routine(int i, int j) {
         gBoard.makePlain();
         if (currentPlayer instanceof AIPlayer && !gameState.isLegal(i, j)) {
-            Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result = currentPlayer.move(new GameState(gameState), gBoard);
+            var result = currentPlayer.move(new GameState(gameState), gBoard);
             int i1 = result.getKey().getKey();
             int j1 = result.getKey().getValue();
             int i2 = result.getValue().getKey();

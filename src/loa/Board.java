@@ -1,7 +1,6 @@
 package loa;
 
 import javafx.application.Platform;
-import javafx.event.EventHandler;
 import javafx.scene.Node;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
@@ -20,7 +19,7 @@ public class Board {
     private final Color IN_PATH_CELL = Color.rgb(0, 0, 255, .2);
     private final Color SELECTED_CELL = Color.rgb(0, 255, 0, .2);
 
-    private class CheckerBox {
+    private static class CheckerBox {
         public Optional<Color> overriddenBackgroundColor = Optional.empty();
         public Optional<Color> piece = Optional.empty();
 
@@ -69,12 +68,12 @@ public class Board {
                     circle.radiusProperty().bind(gridPane.widthProperty().divide(2.4 * dimension));
                     stackPanes[finalI][finalJ].getChildren().add(circle);
                 });
-                stackPanes[i][j].addEventHandler(MouseEvent.MOUSE_PRESSED, new EventHandler<MouseEvent>() {
-                    @Override
-                    public void handle(MouseEvent e) {
-                        Platform.runLater(() -> Main.routine(finalI, finalJ));
-                    }
-                });
+                stackPanes[i][j].addEventHandler(
+                        MouseEvent.MOUSE_PRESSED,
+                        event -> Platform.runLater(
+                                () -> Main.routine(finalI, finalJ)
+                        )
+                );
                 gridPane.add(stackPanes[i][j], j, i);
             }
         return gridPane;

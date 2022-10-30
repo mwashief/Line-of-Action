@@ -15,8 +15,8 @@ public class AIPlayer extends Player {
     public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state, Board board) {
         int i1 = 0, j1 = 0, i2 = 0, j2 = 0;
         int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
-        for (int i = 0; i < Main.dimension; i++)
-            for (int j = 0; j < Main.dimension; j++)
+        for (int i = 0; i < state.dimension; i++)
+            for (int j = 0; j < state.dimension; j++)
                 if (state.getState(i, j).equals(Optional.of(piece))) {
                     ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
@@ -40,12 +40,12 @@ public class AIPlayer extends Player {
             return Integer.MIN_VALUE + 1;
         if (state.isWon(piece))
             return Integer.MAX_VALUE;
-        if (level <= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
+        if (level <= 0) return utility(state, piece) - utility(state, piece.getOtherPiece());
 
 
         int v = Integer.MIN_VALUE + 1;
-        for (int i = 0; i < Main.dimension; i++)
-            for (int j = 0; j < Main.dimension; j++)
+        for (int i = 0; i < state.dimension; i++)
+            for (int j = 0; j < state.dimension; j++)
                 if (state.getState(i, j).equals(Optional.of(piece))) {
                     ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
@@ -64,11 +64,11 @@ public class AIPlayer extends Player {
             return Integer.MAX_VALUE;
         if (state.isWon(piece.getOtherPiece()))
             return Integer.MIN_VALUE + 1;
-        if (level <= 0) return state.utility(piece) - state.utility(piece.getOtherPiece());
+        if (level <= 0) return utility(state, piece) - utility(state, piece.getOtherPiece());
 
         int v = Integer.MAX_VALUE;
-        for (int i = 0; i < Main.dimension; i++)
-            for (int j = 0; j < Main.dimension; j++)
+        for (int i = 0; i < state.dimension; i++)
+            for (int j = 0; j < state.dimension; j++)
                 if (state.getState(i, j).equals(Optional.of(piece.getOtherPiece()))) {
                     ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
@@ -80,5 +80,21 @@ public class AIPlayer extends Player {
                     }
                 }
         return v;
+    }
+
+    int utility(GameState gameState, Piece piece) {
+        Pair<Integer, Integer> CM = gameState.getCM(piece);
+        int x = CM.getKey();
+        int y = CM.getValue();
+        Pair<Integer, Integer> comp = gameState.getComponent(piece);
+        int compSize = comp.getValue();
+        int compNo = comp.getKey();
+        return gameState.getDensity(x, y, piece)
+                + gameState.getQuad(x, y, piece)
+                + gameState.dimension * compSize
+                + 10 * gameState.getMobility(piece)
+                + 50 * gameState.getPST(piece)
+                - gameState.getArea(piece) / 2
+                - 100 * compNo;
     }
 }

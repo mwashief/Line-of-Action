@@ -523,22 +523,6 @@ public class GameState {
         return (maxX - minX + 1) * (maxY - minY + 1);
     }
 
-    int utility(Piece piece) {
-        Pair<Integer, Integer> CM = getCM(piece);
-        int x = CM.getKey();
-        int y = CM.getValue();
-        Pair<Integer, Integer> comp = getComponent(piece);
-        int compSize = comp.getValue();
-        int compNo = comp.getKey();
-        return getDensity(x, y, piece)
-                + getQuad(x, y, piece)
-                + dimension * compSize
-                + 10 * getMobility(piece)
-                + 50 * getPST(piece)
-                - getArea(piece) / 2
-                - 100 * compNo;
-    }
-
     @Override
     public String toString() {
         StringBuilder s = new StringBuilder();
