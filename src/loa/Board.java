@@ -8,7 +8,9 @@ import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Circle;
 import javafx.scene.shape.Rectangle;
+import javafx.util.Pair;
 
+import java.util.ArrayList;
 import java.util.Optional;
 
 public class Board {
@@ -21,15 +23,18 @@ public class Board {
 
     private static class CheckerBox {
         public Optional<Color> overriddenBackgroundColor = Optional.empty();
-        public Optional<Color> piece = Optional.empty();
+        public Optional<Piece> piece = Optional.empty();
 
     }
+
+    private Match match;
 
     private final int dimension;
     private CheckerBox[][] grid;
 
-    public Board(int dimension) {
-        this.dimension = dimension;
+    public Board(Match match) {
+        this.dimension = match.dimension;
+        this.match = match;
         grid = new CheckerBox[dimension][dimension];
 
         for (int i = 0; i < dimension; i++)
@@ -62,16 +67,54 @@ public class Board {
                 int finalI = i;
                 int finalJ = j;
 
-                grid[i][j].piece.ifPresent(color -> {
+                grid[i][j].piece.ifPresent(piece -> {
                     Circle circle = new Circle();
-                    circle.setFill(color);
+                    circle.setFill(piece.pieceColor);
                     circle.radiusProperty().bind(gridPane.widthProperty().divide(2.4 * dimension));
                     stackPanes[finalI][finalJ].getChildren().add(circle);
                 });
                 stackPanes[i][j].addEventHandler(
                         MouseEvent.MOUSE_PRESSED,
                         event -> Platform.runLater(
-                                () -> Main.routine(finalI, finalJ)
+                                () -> {
+                                    if (this.match.currentPlayer instanceof ManualPlayer) {
+                                        var currentPlayer = (ManualPlayer) this.match.currentPlayer;
+                                        System.out.println("clicked on " + finalI + ", " + finalJ);
+                                        synchronized (currentPlayer) {
+                                            if (currentPlayer.chosenMove == null) {
+                                                for (var des : currentPlayer.destination) {
+                                                    System.out.print(des + ", ");
+                                                }
+                                                if (currentPlayer.destination.stream().anyMatch(cell -> cell.getKey() == finalI && cell.getValue() == finalJ)) {
+                                                    this.makePlain();
+                                                    currentPlayer.chosenMove = new Pair<>(currentPlayer.source, new Pair<>(finalI, finalJ));
+                                                } else {
+                                                    this.makePlain();
+                                                    if (this.grid[finalI][finalJ].piece.equals(Optional.of(currentPlayer.piece))) {
+                                                        var all = this.match.gameState.findAll(finalI, finalJ);
+                                                        this.addSelected(finalI, finalJ);
+                                                        for (Pair<Integer, Integer> p : all.get(0)) {
+                                                            this.addInPath(p.getKey(), p.getValue());
+                                                        }
+                                                        for (Pair<Integer, Integer> p : all.get(1)) {
+                                                            this.addEnd(p.getKey(), p.getValue());
+                                                        }
+                                                        for (Pair<Integer, Integer> p : all.get(2)) {
+                                                            this.addCapturing(p.getKey(), p.getValue());
+                                                        }
+
+                                                        currentPlayer.source = new Pair<>(finalI, finalJ);
+                                                        currentPlayer.destination = all.get(1);
+                                                    } else {
+                                                        currentPlayer.destination = new ArrayList<>();
+                                                    }
+                                                    this.match.refresh(match.getBoardScene());
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
                         )
                 );
                 gridPane.add(stackPanes[i][j], j, i);
@@ -119,7 +162,7 @@ public class Board {
     }
 
     void addPiece(int i, int j, Piece piece) {
-        grid[i][j].piece = Optional.of(piece.pieceColor);
+        grid[i][j].piece = Optional.of(piece);
     }
 
 }

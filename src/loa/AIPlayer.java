@@ -4,6 +4,7 @@ import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Optional;
+import java.util.concurrent.Callable;
 
 public class AIPlayer extends Player {
 
@@ -12,27 +13,29 @@ public class AIPlayer extends Player {
     }
 
     @Override
-    public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state, Board board) {
-        int i1 = 0, j1 = 0, i2 = 0, j2 = 0;
-        int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
-        for (int i = 0; i < state.dimension; i++)
-            for (int j = 0; j < state.dimension; j++)
-                if (state.getState(i, j).equals(Optional.of(piece))) {
-                    ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
-                    for (Pair<Integer, Integer> nextMove : nextMoves) {
-                        GameState g = new GameState(state);
-                        g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
-                        int x = minValue(g, alpha + 1, beta, 5);
-                        if (x > alpha) {
-                            alpha = x;
-                            i1 = i;
-                            j1 = j;
-                            i2 = nextMove.getKey();
-                            j2 = nextMove.getValue();
+    public Callable<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>> move(GameState state, Board board) {
+        return () -> {
+            int i1 = 0, j1 = 0, i2 = 0, j2 = 0;
+            int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
+            for (int i = 0; i < state.dimension; i++)
+                for (int j = 0; j < state.dimension; j++)
+                    if (state.getState(i, j).equals(Optional.of(piece))) {
+                        ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
+                        for (Pair<Integer, Integer> nextMove : nextMoves) {
+                            GameState g = new GameState(state);
+                            g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
+                            int x = minValue(g, alpha + 1, beta, 3);
+                            if (x > alpha) {
+                                alpha = x;
+                                i1 = i;
+                                j1 = j;
+                                i2 = nextMove.getKey();
+                                j2 = nextMove.getValue();
+                            }
                         }
                     }
-                }
-        return new Pair<>(new Pair<>(i1, j1), new Pair<>(i2, j2));
+            return new Pair<>(new Pair<>(i1, j1), new Pair<>(i2, j2));
+        };
     }
 
     int maxValue(GameState state, int alpha, int beta, int level) {
