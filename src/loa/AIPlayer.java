@@ -4,7 +4,6 @@ import javafx.util.Pair;
 
 import java.util.ArrayList;
 import java.util.Optional;
-import java.util.concurrent.Callable;
 
 public class AIPlayer extends Player {
 
@@ -13,29 +12,28 @@ public class AIPlayer extends Player {
     }
 
     @Override
-    public Callable<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>> move(GameState state, Board board) {
-        return () -> {
-            int sourceRow = 0, sourceColumn = 0, targetRow = 0, targetColumn = 0;
-            int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
-            for (int row = 0; row < state.getDimension(); row++)
-                for (int column = 0; column < state.getDimension(); column++)
-                    if (state.getState(row, column).equals(Optional.of(piece))) {
-                        ArrayList<Pair<Integer, Integer>> nextMoves = state.findAll(row, column).get(1);
-                        for (Pair<Integer, Integer> nextMove : nextMoves) {
-                            GameState g = new GameState(state);
-                            g.transferPiece(row, column, nextMove.getKey(), nextMove.getValue());
-                            int x = minValue(g, alpha + 1, beta, 3);
-                            if (x > alpha) {
-                                alpha = x;
-                                sourceRow = row;
-                                sourceColumn = column;
-                                targetRow = nextMove.getKey();
-                                targetColumn = nextMove.getValue();
-                            }
+    public Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> move(GameState state, Board board) {
+        int sourceRow = 0, sourceColumn = 0, targetRow = 0, targetColumn = 0;
+        int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
+        for (int row = 0; row < state.getDimension(); row++)
+            for (int column = 0; column < state.getDimension(); column++)
+                if (state.getState(row, column).equals(Optional.of(piece))) {
+                    ArrayList<Pair<Integer, Integer>> nextMoves = state.findAll(row, column).get(1);
+                    for (Pair<Integer, Integer> nextMove : nextMoves) {
+                        GameState g = new GameState(state);
+                        g.transferPiece(row, column, nextMove.getKey(), nextMove.getValue());
+                        int x = minValue(g, alpha + 1, beta, 3);
+                        if (x > alpha) {
+                            alpha = x;
+                            sourceRow = row;
+                            sourceColumn = column;
+                            targetRow = nextMove.getKey();
+                            targetColumn = nextMove.getValue();
                         }
                     }
-            return new Pair<>(new Pair<>(sourceRow, sourceColumn), new Pair<>(targetRow, targetColumn));
-        };
+                }
+        return new Pair<>(new Pair<>(sourceRow, sourceColumn), new Pair<>(targetRow, targetColumn));
+
     }
 
     int maxValue(GameState state, int alpha, int beta, int level) {

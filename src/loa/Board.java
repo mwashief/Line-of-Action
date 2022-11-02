@@ -94,7 +94,7 @@ public class Board {
                                         synchronized (currentPlayer) {
                                             if (currentPlayer.chosenMove == null) {
                                                 this.makePlain();
-                                                if (currentPlayer.destination.stream().anyMatch(cell -> cell.getKey() == finalI && cell.getValue() == finalJ)) {
+                                                if (currentPlayer.targets.stream().anyMatch(cell -> cell.getKey() == finalI && cell.getValue() == finalJ)) {
                                                     currentPlayer.chosenMove = new Pair<>(currentPlayer.source, new Pair<>(finalI, finalJ));
                                                 } else {
                                                     if (this.grid[finalI][finalJ].maybePiece.equals(Optional.of(currentPlayer.piece))) {
@@ -107,9 +107,9 @@ public class Board {
                                                         );
 
                                                         currentPlayer.source = new Pair<>(finalI, finalJ);
-                                                        currentPlayer.destination = relevantCells.get(1);
+                                                        currentPlayer.targets = relevantCells.get(1);
                                                     } else {
-                                                        currentPlayer.destination = new ArrayList<>();
+                                                        currentPlayer.targets = new ArrayList<>();
                                                     }
                                                     this.match.refresh(match.getBoardScene(), false);
                                                 }

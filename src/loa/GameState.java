@@ -8,7 +8,7 @@ import java.util.Optional;
 import java.util.Queue;
 
 public class GameState {
-    private int dimension;
+    private final int dimension;
     private Optional<Piece>[][] grid;
     private int[] positiveSlope;
     private int[] negativeSlope;

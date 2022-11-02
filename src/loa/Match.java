@@ -9,9 +9,6 @@ import javafx.scene.text.Font;
 import javafx.stage.Stage;
 import javafx.util.Pair;
 
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.FutureTask;
-
 public class Match {
     public int dimension;
     public Board board;
@@ -45,15 +42,9 @@ public class Match {
             return;
         }
 
-        var futureTask = new FutureTask<>(currentPlayer.move(gameState, board));
-        new Thread(futureTask).start();
 
-        Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result;
-        try {
-            result = futureTask.get();
-        } catch (InterruptedException | ExecutionException e) {
-            throw new RuntimeException(e);
-        }
+        Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result = currentPlayer.move(gameState, board);
+
 
         int sourceRow = result.getKey().getKey();
         int sourceColumn = result.getKey().getValue();
