@@ -14,16 +14,26 @@ import java.util.ArrayList;
 import java.util.Optional;
 
 public class Board {
-    private final Color WHITE_CELL = Color.rgb(171, 143, 123);
-    private final Color BLACK_CELL = Color.rgb(224, 172, 134);
-    private final Color CAPTURING_CELL = Color.rgb(255, 0, 0, .5);
-    private final Color END_CELL = Color.rgb(0, 255, 0, .5);
-    private final Color IN_PATH_CELL = Color.rgb(0, 0, 255, .2);
-    private final Color SELECTED_CELL = Color.rgb(0, 255, 0, .2);
+
+    private enum Cell {
+        WHITE_CELL     (Color.rgb(171, 143, 123)),
+        BLACK_CELL     (Color.rgb(224, 172, 134)),
+        CAPTURING_CELL (Color.rgb(255, 0,   0,   .5)),
+        END_CELL       (Color.rgb(0,   255, 0,   .5)),
+        IN_PATH_CELL   (Color.rgb(0,   0,   255, .2)),
+        SELECTED_CELL  (Color.rgb(0,   255, 0,   .2));
+
+        public final Color cellColor;
+
+        Cell(Color color) {
+            this.cellColor = color;
+        }
+    }
+
 
     private static class CheckerBox {
-        public Optional<Color> overriddenBackgroundColor = Optional.empty();
-        public Optional<Piece> piece = Optional.empty();
+        public Optional<Cell> maybeOverriddenCell = Optional.empty();
+        public Optional<Piece> maybePiece = Optional.empty();
 
     }
 
@@ -41,10 +51,10 @@ public class Board {
             for (int j = 0; j < dimension; j++)
                 grid[i][j] = new CheckerBox();
         for (int i = 1; i < dimension - 1; i++) {
-            addWhitePiece(i, 0);
-            addWhitePiece(i, dimension - 1);
-            addBlackPiece(0, i);
-            addBlackPiece(dimension - 1, i);
+            addPiece(i, 0,             Piece.WHITE);
+            addPiece(i, dimension - 1, Piece.WHITE);
+            addPiece(0, i,             Piece.BLACK);
+            addPiece(dimension - 1, i, Piece.BLACK);
         }
     }
 
@@ -59,15 +69,16 @@ public class Board {
                 rectangle.widthProperty().bind(gridPane.widthProperty().divide(dimension));
                 rectangle.heightProperty().bind(gridPane.heightProperty().divide(dimension));
                 rectangle.setFill(
-                        grid[i][j].overriddenBackgroundColor
-                                .orElse((i + j) % 2 == 0 ? WHITE_CELL : BLACK_CELL)
+                        grid[i][j].maybeOverriddenCell
+                                .map(cell -> cell.cellColor)
+                                .orElse((i + j) % 2 == 0 ? Cell.WHITE_CELL.cellColor : Cell.BLACK_CELL.cellColor)
                 );
                 stackPanes[i][j].getChildren().add(rectangle);
 
                 int finalI = i;
                 int finalJ = j;
 
-                grid[i][j].piece.ifPresent(piece -> {
+                grid[i][j].maybePiece.ifPresent(piece -> {
                     Circle circle = new Circle();
                     circle.setFill(piece.pieceColor);
                     circle.radiusProperty().bind(gridPane.widthProperty().divide(2.4 * dimension));
@@ -81,25 +92,22 @@ public class Board {
                                         System.out.println("clicked on " + finalI + ", " + finalJ);
                                         synchronized (currentPlayer) {
                                             if (currentPlayer.chosenMove == null) {
-                                                for (var des : currentPlayer.destination) {
-                                                    System.out.print(des + ", ");
-                                                }
                                                 if (currentPlayer.destination.stream().anyMatch(cell -> cell.getKey() == finalI && cell.getValue() == finalJ)) {
                                                     this.makePlain();
                                                     currentPlayer.chosenMove = new Pair<>(currentPlayer.source, new Pair<>(finalI, finalJ));
                                                 } else {
                                                     this.makePlain();
-                                                    if (this.grid[finalI][finalJ].piece.equals(Optional.of(currentPlayer.piece))) {
+                                                    if (this.grid[finalI][finalJ].maybePiece.equals(Optional.of(currentPlayer.piece))) {
                                                         var all = this.match.gameState.findAll(finalI, finalJ);
-                                                        this.addSelected(finalI, finalJ);
+                                                        this.overrideCell(finalI, finalJ, Cell.SELECTED_CELL);
                                                         for (Pair<Integer, Integer> p : all.get(0)) {
-                                                            this.addInPath(p.getKey(), p.getValue());
+                                                            this.overrideCell(p.getKey(), p.getValue(), Cell.IN_PATH_CELL);
                                                         }
                                                         for (Pair<Integer, Integer> p : all.get(1)) {
-                                                            this.addEnd(p.getKey(), p.getValue());
+                                                            this.overrideCell(p.getKey(), p.getValue(), Cell.END_CELL);
                                                         }
                                                         for (Pair<Integer, Integer> p : all.get(2)) {
-                                                            this.addCapturing(p.getKey(), p.getValue());
+                                                            this.overrideCell(p.getKey(), p.getValue(), Cell.CAPTURING_CELL);
                                                         }
 
                                                         currentPlayer.source = new Pair<>(finalI, finalJ);
@@ -121,38 +129,14 @@ public class Board {
         return gridPane;
     }
 
-    void addBlackPiece(int i, int j) {
-        addPiece(i, j, Piece.BLACK);
-    }
-
-    void addWhitePiece(int i, int j) {
-        addPiece(i, j, Piece.WHITE);
-    }
-
-    void addInPath(int i, int j) {
-        grid[i][j].overriddenBackgroundColor = Optional.of(IN_PATH_CELL);
-    }
-
-    void addCapturing(int i, int j) {
-        grid[i][j].overriddenBackgroundColor = Optional.of(CAPTURING_CELL);
-    }
-
-    void addSelected(int i, int j) {
-        grid[i][j].overriddenBackgroundColor = Optional.of(SELECTED_CELL);
-    }
-
-    void addEnd(int i, int j) {
-        grid[i][j].overriddenBackgroundColor = Optional.of(END_CELL);
-    }
-
-    void removePiece(int i, int j) {
-        grid[i][j].piece = Optional.empty();
+    void overrideCell(int i, int j, Cell cell)
+    {
+        this.grid[i][j].maybeOverriddenCell = Optional.of(cell);
     }
 
     void removeOverriddenBackground(int i, int j) {
-        grid[i][j].overriddenBackgroundColor = Optional.empty();
+        grid[i][j].maybeOverriddenCell = Optional.empty();
     }
-
 
     void makePlain() {
         for (int i = 0; i < dimension; i++)
@@ -161,7 +145,9 @@ public class Board {
     }
 
     void addPiece(int i, int j, Piece piece) {
-        grid[i][j].piece = Optional.of(piece);
+        grid[i][j].maybePiece = Optional.of(piece);
     }
-
+    void removePiece(int i, int j) {
+        grid[i][j].maybePiece = Optional.empty();
+    }
 }

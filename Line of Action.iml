@@ -11,5 +11,6 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="lib" level="project" />
     <orderEntry type="library" exported="" name="JavaFx" level="project" />
+    <orderEntry type="library" name="scala-sdk-2.13.10" level="application" />
   </component>
 </module>
