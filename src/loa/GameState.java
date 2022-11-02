@@ -8,19 +8,23 @@ import java.util.Optional;
 import java.util.Queue;
 
 public class GameState {
-    int dimension;
-    Optional<Piece>[][] grid;
-    int[] positiveSlope;
-    int[] negativeSlope;
-    int[] row;
-    int[] col;
-    int[] pieceCount;
-    static int[] dr = {0, -1, -1, -1, 0, 1, 1, 1};
-    static int[] dc = {1, 1, 0, -1, -1, -1, 0, 1};
+    private int dimension;
+    private Optional<Piece>[][] grid;
+    private int[] positiveSlope;
+    private int[] negativeSlope;
+    private int[] row;
+    private int[] col;
+    private int[] pieceCount;
+    private static final int[] dr = {0, -1, -1, -1, 0, 1, 1, 1};
+    private static final int[] dc = {1, 1, 0, -1, -1, -1, 0, 1};
 
     private static int getIndexFromPiece(Piece piece) {
         if (piece == Piece.WHITE) return 1;
         return 0;
+    }
+
+    public int getDimension() {
+        return dimension;
     }
 
     public GameState(int dimension) {
@@ -77,25 +81,6 @@ public class GameState {
         return i + j;
     }
 
-    void addBlack(int i, int j) {
-        addPiece(i, j, Piece.BLACK);
-    }
-
-    void addWhite(int i, int j) {
-        addPiece(i, j, Piece.WHITE);
-    }
-
-    void removePiece(int i, int j) {
-        grid[i][j].ifPresent(piece -> {
-            pieceCount[getIndexFromPiece(piece)]--;
-            row[i]--;
-            col[j]--;
-            positiveSlope[getPositiveSlopeNo(i, j)]--;
-            negativeSlope[getNegativeSlopeNo(i, j)]--;
-            grid[i][j] = Optional.empty();
-        });
-    }
-
     boolean isLegal(int i, int j) {
         return i >= 0 && i < dimension && j >= 0 && j < dimension;
     }
@@ -118,6 +103,25 @@ public class GameState {
         pieceCount[getIndexFromPiece(piece)]++;
     }
 
+    void addBlack(int row, int column) {
+        addPiece(row, column, Piece.BLACK);
+    }
+
+    void addWhite(int row, int column) {
+        addPiece(row, column, Piece.WHITE);
+    }
+
+    void removePiece(int i, int j) {
+        grid[i][j].ifPresent(piece -> {
+            pieceCount[getIndexFromPiece(piece)]--;
+            row[i]--;
+            col[j]--;
+            positiveSlope[getPositiveSlopeNo(i, j)]--;
+            negativeSlope[getNegativeSlopeNo(i, j)]--;
+            grid[i][j] = Optional.empty();
+        });
+    }
+
     boolean isWon(Piece piece) {
         Pair<Integer, Integer> start = null;
         for (int i = 0; i < dimension; i++)
@@ -127,293 +131,200 @@ public class GameState {
                     break;
                 }
         if (start == null) return true;
-        Queue<Pair<Integer, Integer>> Q = new LinkedList<>();
-        Q.add(start);
+        Queue<Pair<Integer, Integer>> queue = new LinkedList<>();
+        queue.add(start);
         int count = 0;
         boolean[][] visited = new boolean[dimension][dimension];
         visited[start.getKey()][start.getValue()] = true;
-        while (!Q.isEmpty()) {
-            int i = Q.peek().getKey();
-            int j = Q.peek().getValue();
-            Q.remove();
+        while (!queue.isEmpty()) {
+            int row = queue.peek().getKey();
+            int column = queue.peek().getValue();
+            queue.remove();
             count++;
             for (int k = 0; k < 8; k++) {
-                int x = i + dr[k];
-                int y = j + dc[k];
-                if (isLegal(x, y) && grid[x][y].equals(Optional.of(piece)) && !visited[x][y]) {
-                    visited[x][y] = true;
-                    Q.add(new Pair<>(x, y));
+                int nextRow = row + dr[k];
+                int nextColumn = column + dc[k];
+                if (isLegal(nextRow, nextColumn) && grid[nextRow][nextColumn].equals(Optional.of(piece)) && !visited[nextRow][nextColumn]) {
+                    visited[nextRow][nextColumn] = true;
+                    queue.add(new Pair<>(nextRow, nextColumn));
                 }
             }
         }
         return count == pieceCount[getIndexFromPiece(piece)];
     }
 
-    boolean isWhiteWon() {
-        return isWon(Piece.WHITE);
-    }
-
-    boolean isBlackWon() {
-        return isWon(Piece.BLACK);
-    }
-
-    void transferPiece(int i1, int j1, int i2, int j2) {
-        grid[i1][j1].ifPresentOrElse(
+    void transferPiece(int sourceRow, int sourceColumn, int targetRow, int targetColumn) {
+        grid[sourceRow][sourceColumn].ifPresentOrElse(
                 piece -> {
-                    removePiece(i1, j1);
-                    addPiece(i2, j2, piece);
+                    removePiece(sourceRow, sourceColumn);
+                    addPiece(targetRow, targetColumn, piece);
                 },
                 () -> System.out.println("Bad Request!")
         );
     }
 
-    ArrayList<ArrayList<Pair<Integer, Integer>>> findAll(int i, int j) {
-        Optional<Piece> maybePiece = grid[i][j];
+    /**
+     * Takes a cell and return relevant cells.
+     *
+     * @param row    index of the row
+     * @param column index of the column
+     * @return
+    | Arraylist |    Value        |
+    |-----------|-----------------|
+    | 1         | In path cells   |
+    | 2         | Target cells    |
+    | 3         | Capturing cells |
+     */
+    ArrayList<ArrayList<Pair<Integer, Integer>>> findAll(int row, int column) {
+        Optional<Piece> maybePiece = grid[row][column];
         if (maybePiece.isEmpty()) return null;
 
         ArrayList<Pair<Integer, Integer>> inPath = new ArrayList<>();
-        ArrayList<Pair<Integer, Integer>> end = new ArrayList<>();
+        ArrayList<Pair<Integer, Integer>> target = new ArrayList<>();
         ArrayList<Pair<Integer, Integer>> capturing = new ArrayList<>();
 
         //right
         boolean pathClear = true;
-        for (int k = 1; k < row[i]; k++)
-            if (!isLegal(i, j + k) || (grid[i][j + k].isPresent() && !grid[i][j + k].equals(maybePiece))) {
+        for (int k = 1; k < this.row[row]; k++)
+            if (!isLegal(row, column + k) || (grid[row][column + k].isPresent() && !grid[row][column + k].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
-        if (pathClear && isLegal(i, j + row[i]) && !grid[i][j + row[i]].equals(maybePiece)) {
-            for (int k = 1; k < row[i]; k++)
-                inPath.add(new Pair<>(i, j + k));
-            end.add(new Pair<>(i, j + row[i]));
-            if (grid[i][j + row[i]].isPresent())
-                capturing.add(new Pair<>(i, j + row[i]));
+        if (pathClear && isLegal(row, column + this.row[row]) && !grid[row][column + this.row[row]].equals(maybePiece)) {
+            for (int k = 1; k < this.row[row]; k++)
+                inPath.add(new Pair<>(row, column + k));
+            target.add(new Pair<>(row, column + this.row[row]));
+            if (grid[row][column + this.row[row]].isPresent())
+                capturing.add(new Pair<>(row, column + this.row[row]));
 
         }
         //left
         pathClear = true;
-        for (int k = 1; k < row[i]; k++)
-            if (!isLegal(i, j - k) || (grid[i][j - k].isPresent() && !grid[i][j - k].equals(maybePiece))) {
+        for (int k = 1; k < this.row[row]; k++)
+            if (!isLegal(row, column - k) || (grid[row][column - k].isPresent() && !grid[row][column - k].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
-        if (pathClear && isLegal(i, j - row[i]) && !grid[i][j - row[i]].equals(maybePiece)) {
-            for (int k = 1; k < row[i]; k++)
-                inPath.add(new Pair<>(i, j - k));
-            end.add(new Pair<>(i, j - row[i]));
-            if (grid[i][j - row[i]].isPresent())
-                capturing.add(new Pair<>(i, j - row[i]));
+        if (pathClear && isLegal(row, column - this.row[row]) && !grid[row][column - this.row[row]].equals(maybePiece)) {
+            for (int k = 1; k < this.row[row]; k++)
+                inPath.add(new Pair<>(row, column - k));
+            target.add(new Pair<>(row, column - this.row[row]));
+            if (grid[row][column - this.row[row]].isPresent())
+                capturing.add(new Pair<>(row, column - this.row[row]));
 
         }
         //down
         pathClear = true;
-        for (int k = 1; k < col[j]; k++)
-            if (!isLegal(i + k, j) || (grid[i + k][j].isPresent() && !grid[i + k][j].equals(maybePiece))) {
+        for (int k = 1; k < col[column]; k++)
+            if (!isLegal(row + k, column) || (grid[row + k][column].isPresent() && !grid[row + k][column].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
-        if (pathClear && isLegal(i + col[j], j) && !grid[i + col[j]][j].equals(maybePiece)) {
-            for (int k = 1; k < col[j]; k++)
-                inPath.add(new Pair<>(i + k, j));
-            end.add(new Pair<>(i + col[j], j));
-            if (grid[i + col[j]][j].isPresent())
-                capturing.add(new Pair<>(i + col[j], j));
+        if (pathClear && isLegal(row + col[column], column) && !grid[row + col[column]][column].equals(maybePiece)) {
+            for (int k = 1; k < col[column]; k++)
+                inPath.add(new Pair<>(row + k, column));
+            target.add(new Pair<>(row + col[column], column));
+            if (grid[row + col[column]][column].isPresent())
+                capturing.add(new Pair<>(row + col[column], column));
         }
         //up
         pathClear = true;
-        for (int k = 1; k < col[j]; k++)
-            if (!isLegal(i - k, j) || (grid[i - k][j].isPresent() && !grid[i - k][j].equals(maybePiece))) {
+        for (int k = 1; k < col[column]; k++)
+            if (!isLegal(row - k, column) || (grid[row - k][column].isPresent() && !grid[row - k][column].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
-        if (pathClear && isLegal(i - col[j], j) && !grid[i - col[j]][j].equals(maybePiece)) {
-            for (int k = 1; k < col[j]; k++)
-                inPath.add(new Pair<>(i - k, j));
-            end.add(new Pair<>(i - col[j], j));
-            if (grid[i - col[j]][j].isPresent())
-                capturing.add(new Pair<>(i - col[j], j));
+        if (pathClear && isLegal(row - col[column], column) && !grid[row - col[column]][column].equals(maybePiece)) {
+            for (int k = 1; k < col[column]; k++)
+                inPath.add(new Pair<>(row - k, column));
+            target.add(new Pair<>(row - col[column], column));
+            if (grid[row - col[column]][column].isPresent())
+                capturing.add(new Pair<>(row - col[column], column));
         }
         //up right
         pathClear = true;
-        int steps = positiveSlope[getPositiveSlopeNo(i, j)];
+        int steps = positiveSlope[getPositiveSlopeNo(row, column)];
         for (int k = 1; k < steps; k++)
-            if (!isLegal(i + k, j + k) || (grid[i + k][j + k].isPresent() && !grid[i + k][j + k].equals(maybePiece))) {
+            if (!isLegal(row + k, column + k) || (grid[row + k][column + k].isPresent() && !grid[row + k][column + k].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
         if (pathClear
-                && isLegal(i + steps, j + steps)
-                && !grid[i + steps][j + steps].equals(maybePiece)) {
+                && isLegal(row + steps, column + steps)
+                && !grid[row + steps][column + steps].equals(maybePiece)) {
             for (int k = 1; k < steps; k++)
-                inPath.add(new Pair<>(i + k, j + k));
-            end.add(new Pair<>(i + steps, j + steps));
-            if (grid[i + steps][j + steps].isPresent())
-                capturing.add(new Pair<>(i + steps, j + steps));
+                inPath.add(new Pair<>(row + k, column + k));
+            target.add(new Pair<>(row + steps, column + steps));
+            if (grid[row + steps][column + steps].isPresent())
+                capturing.add(new Pair<>(row + steps, column + steps));
         }
         //down left
         pathClear = true;
-        steps = positiveSlope[getPositiveSlopeNo(i, j)];
+        steps = positiveSlope[getPositiveSlopeNo(row, column)];
         for (int k = 1; k < steps; k++)
-            if (!isLegal(i - k, j - k) || (grid[i - k][j - k].isPresent() && !grid[i - k][j - k].equals(maybePiece))) {
+            if (!isLegal(row - k, column - k) || (grid[row - k][column - k].isPresent() && !grid[row - k][column - k].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
         if (pathClear
-                && isLegal(i - steps, j - steps)
-                && !grid[i - steps][j - steps].equals(maybePiece)) {
+                && isLegal(row - steps, column - steps)
+                && !grid[row - steps][column - steps].equals(maybePiece)) {
             for (int k = 1; k < steps; k++)
-                inPath.add(new Pair<>(i - k, j - k));
-            end.add(new Pair<>(i - steps, j - steps));
-            if (grid[i - steps][j - steps].isPresent())
-                capturing.add(new Pair<>(i - steps, j - steps));
+                inPath.add(new Pair<>(row - k, column - k));
+            target.add(new Pair<>(row - steps, column - steps));
+            if (grid[row - steps][column - steps].isPresent())
+                capturing.add(new Pair<>(row - steps, column - steps));
         }
 
         //down right
         pathClear = true;
-        steps = negativeSlope[getNegativeSlopeNo(i, j)];
+        steps = negativeSlope[getNegativeSlopeNo(row, column)];
         for (int k = 1; k < steps; k++)
-            if (!isLegal(i + k, j - k) || (grid[i + k][j - k].isPresent() && !grid[i + k][j - k].equals(maybePiece))) {
+            if (!isLegal(row + k, column - k) || (grid[row + k][column - k].isPresent() && !grid[row + k][column - k].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
         if (pathClear
-                && isLegal(i + steps, j - steps)
-                && !grid[i + steps][j - steps].equals(maybePiece)) {
+                && isLegal(row + steps, column - steps)
+                && !grid[row + steps][column - steps].equals(maybePiece)) {
             for (int k = 1; k < steps; k++)
-                inPath.add(new Pair<>(i + k, j - k));
-            end.add(new Pair<>(i + steps, j - steps));
-            if (grid[i + steps][j - steps].isPresent())
-                capturing.add(new Pair<>(i + steps, j - steps));
+                inPath.add(new Pair<>(row + k, column - k));
+            target.add(new Pair<>(row + steps, column - steps));
+            if (grid[row + steps][column - steps].isPresent())
+                capturing.add(new Pair<>(row + steps, column - steps));
         }
 
         //up left
         pathClear = true;
-        steps = negativeSlope[getNegativeSlopeNo(i, j)];
+        steps = negativeSlope[getNegativeSlopeNo(row, column)];
         for (int k = 1; k < steps; k++)
-            if (!isLegal(i - k, j + k) || (grid[i - k][j + k].isPresent() && !grid[i - k][j + k].equals(maybePiece))) {
+            if (!isLegal(row - k, column + k) || (grid[row - k][column + k].isPresent() && !grid[row - k][column + k].equals(maybePiece))) {
                 pathClear = false;
                 break;
             }
         if (pathClear
-                && isLegal(i - steps, j + steps)
-                && !grid[i - steps][j + steps].equals(maybePiece)) {
+                && isLegal(row - steps, column + steps)
+                && !grid[row - steps][column + steps].equals(maybePiece)) {
             for (int k = 1; k < steps; k++)
-                inPath.add(new Pair<>(i - k, j + k));
-            end.add(new Pair<>(i - steps, j + steps));
-            if (grid[i - steps][j + steps].isPresent())
-                capturing.add(new Pair<>(i - steps, j + steps));
+                inPath.add(new Pair<>(row - k, column + k));
+            target.add(new Pair<>(row - steps, column + steps));
+            if (grid[row - steps][column + steps].isPresent())
+                capturing.add(new Pair<>(row - steps, column + steps));
         }
 
         ArrayList<ArrayList<Pair<Integer, Integer>>> result = new ArrayList<>();
         result.add(inPath);
-        result.add(end);
+        result.add(target);
         result.add(capturing);
         return result;
     }
 
-    ArrayList<Pair<Integer, Integer>> findNext(int i, int j) {
-        Optional<Piece> maybePiece = grid[i][j];
-        if (maybePiece.isEmpty()) return null;
-        ArrayList<Pair<Integer, Integer>> end = new ArrayList<>();
-
-        //right
-        boolean pathClear = true;
-        for (int k = 1; k < row[i]; k++)
-            if (!isLegal(i, j + k) || (grid[i][j + k].isPresent() && !grid[i][j + k].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-
-        if (pathClear && isLegal(i, j + row[i]) && !grid[i][j + row[i]].equals(maybePiece))
-            end.add(new Pair<>(i, j + row[i]));
-
-        //left
-        pathClear = true;
-        for (int k = 1; k < row[i]; k++)
-            if (!isLegal(i, j - k) || (grid[i][j - k].isPresent() && !grid[i][j - k].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear && isLegal(i, j - row[i]) && !grid[i][j - row[i]].equals(maybePiece))
-            end.add(new Pair<>(i, j - row[i]));
-
-        //down
-        pathClear = true;
-        for (int k = 1; k < col[j]; k++)
-            if (!isLegal(i + k, j) || (grid[i + k][j].isPresent() && !grid[i + k][j].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear && isLegal(i + col[j], j) && !grid[i + col[j]][j].equals(maybePiece))
-            end.add(new Pair<>(i + col[j], j));
-
-        //up
-        pathClear = true;
-        for (int k = 1; k < col[j]; k++)
-            if (!isLegal(i - k, j) || (grid[i - k][j].isPresent() && !grid[i - k][j].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear && isLegal(i - col[j], j) && !grid[i - col[j]][j].equals(maybePiece))
-            end.add(new Pair<>(i - col[j], j));
-
-        //up right
-        pathClear = true;
-        int steps = positiveSlope[getPositiveSlopeNo(i, j)];
-        for (int k = 1; k < steps; k++)
-            if (!isLegal(i + k, j + k) || (grid[i + k][j + k].isPresent() && !grid[i + k][j + k].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear
-                && isLegal(i + steps, j + steps)
-                && !grid[i + steps][j + steps].equals(maybePiece))
-            end.add(new Pair<>(i + steps, j + steps));
-
-        //down left
-        pathClear = true;
-        steps = positiveSlope[getPositiveSlopeNo(i, j)];
-        for (int k = 1; k < steps; k++)
-            if (!isLegal(i - k, j - k) || (grid[i - k][j - k].isPresent() && !grid[i - k][j - k].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear
-                && isLegal(i - steps, j - steps)
-                && !grid[i - steps][j - steps].equals(maybePiece))
-            end.add(new Pair<>(i - steps, j - steps));
-
-
-        //down right
-        pathClear = true;
-        steps = negativeSlope[getNegativeSlopeNo(i, j)];
-        for (int k = 1; k < steps; k++)
-            if (!isLegal(i + k, j - k) || (grid[i + k][j - k].isPresent() && !grid[i + k][j - k].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear
-                && isLegal(i + steps, j - steps)
-                && !grid[i + steps][j - steps].equals(maybePiece))
-            end.add(new Pair<>(i + steps, j - steps));
-
-
-        //up left
-        pathClear = true;
-        steps = negativeSlope[getNegativeSlopeNo(i, j)];
-        for (int k = 1; k < steps; k++)
-            if (!isLegal(i - k, j + k) || (grid[i - k][j + k].isPresent() && !grid[i - k][j + k].equals(maybePiece))) {
-                pathClear = false;
-                break;
-            }
-        if (pathClear
-                && isLegal(i - steps, j + steps)
-                && !grid[i - steps][j + steps].equals(maybePiece))
-            end.add(new Pair<>(i - steps, j + steps));
-
-        return end;
-    }
-
+    /**
+     * Takes the piece.
+     *
+     * @param piece The desired piece
+     * @return The center of mass of the corresponding piece.
+     */
     Pair<Integer, Integer> getCM(Piece piece) {
         int x = 0;
         int y = 0;
@@ -492,7 +403,7 @@ public class GameState {
         for (int i = 0; i < dimension; i++)
             for (int j = 0; j < dimension; j++)
                 if (grid[i][j].equals(Optional.of(piece)))
-                    res += findNext(i, j).size();
+                    res += findAll(i, j).get(1).size();
         return res;
     }
 

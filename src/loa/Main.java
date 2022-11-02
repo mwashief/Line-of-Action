@@ -4,9 +4,10 @@ import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.stage.Stage;
 
-import java.util.concurrent.ExecutionException;
 
-
+/**
+ * @author Md. Washief Hossain
+ */
 public class Main extends Application {
     public static Match match;
 
@@ -19,16 +20,9 @@ public class Main extends Application {
                     System.exit(0);
                 }
         );
-        match = new Match(8, primaryStage, new ManualPlayer(Piece.BLACK), new AIPlayer(Piece.WHITE));
-        match.refresh(match.getBoardScene());
-        new Thread(() -> {
-            try {
-                match.continueMatch();
-            } catch (ExecutionException | InterruptedException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        ).start();
+        match = new Match(8, primaryStage, new ManualPlayer(Piece.BLACK), new ManualPlayer(Piece.WHITE));
+        match.refresh(match.getBoardScene(), false);
+        new Thread(() -> match.continueMatch()).start();
     }
 
     public static void main(String[] args) {

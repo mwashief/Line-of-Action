@@ -7,12 +7,13 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
 import javafx.scene.text.Font;
 import javafx.stage.Stage;
+import javafx.util.Pair;
 
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.FutureTask;
 
 public class Match {
-    public int dimension = 8;
+    public int dimension;
     public Board board;
     public Stage stage;
     public GameState gameState;
@@ -37,47 +38,45 @@ public class Match {
         currentPlayer = currentPlayer == players[0] ? players[1] : players[0];
     }
 
-    void continueMatch() throws ExecutionException, InterruptedException {
+    void continueMatch() {
         if (gameState.isWon(currentPlayer.piece)) {
-            Platform.runLater(() -> refresh(getWinningScene(currentPlayer.getPiece())));
+            Platform.runLater(() -> refresh(getWinningScene(currentPlayer.getPiece()), true));
             System.out.println(currentPlayer.getPiece().getName() + " Won");
-            return;
-        }
-        if (gameState.isWon(currentPlayer.piece.getOtherPiece())) {
-            Platform.runLater(() -> refresh(getWinningScene(currentPlayer.getPiece().getOtherPiece())));
-            System.out.println(currentPlayer.getPiece().getOtherPiece().getName() + " Won");
             return;
         }
 
         var futureTask = new FutureTask<>(currentPlayer.move(gameState, board));
         new Thread(futureTask).start();
 
-        var result = futureTask.get();
-
-        int i1 = result.getKey().getKey();
-        int j1 = result.getKey().getValue();
-        int i2 = result.getValue().getKey();
-        int j2 = result.getValue().getValue();
-
-
-        gameState.transferPiece(i1, j1, i2, j2);
-        System.out.println(currentPlayer.getPiece() + " moved from (" + i1 + "," + j1 + ") to (" + i2 + "," + j2 + ")");
-
-
-        board.removePiece(i1, j1);
-        board.addPiece(i2, j2, currentPlayer.getPiece());
-
-        switchPlayer();
-        Platform.runLater(() -> {
-            refresh(getBoardScene());
-        });
+        Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result;
         try {
-            continueMatch();
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (InterruptedException e) {
+            result = futureTask.get();
+        } catch (InterruptedException | ExecutionException e) {
             throw new RuntimeException(e);
         }
+
+        int sourceRow = result.getKey().getKey();
+        int sourceColumn = result.getKey().getValue();
+        int targetRow = result.getValue().getKey();
+        int targetColumn = result.getValue().getValue();
+
+        gameState.transferPiece(sourceRow, sourceColumn, targetRow, targetColumn);
+        System.out.println(currentPlayer.getPiece() + " moved from (" + sourceRow + "," + sourceColumn + ") to (" + targetRow + "," + targetColumn + ")");
+
+        board.removePiece(sourceRow, sourceColumn);
+        board.addPiece(targetRow, targetColumn, currentPlayer.getPiece());
+
+        if (gameState.isWon(currentPlayer.piece)) {
+            Platform.runLater(() -> refresh(getWinningScene(currentPlayer.getPiece()), true));
+            System.out.println(currentPlayer.getPiece().getName() + " Won");
+            return;
+        }
+
+        switchPlayer();
+        Platform.runLater(() -> refresh(getBoardScene(), false));
+
+        continueMatch();
+
     }
 
     public Scene getWinningScene(Piece piece) {
@@ -87,15 +86,19 @@ public class Match {
         stackPane.getChildren().addAll(board.getNode(), label);
         stackPane.prefWidthProperty().bind(stage.widthProperty());
         stackPane.prefWidthProperty().bind(stage.widthProperty());
-        return new Scene((Parent) stackPane);
+        return new Scene(stackPane);
     }
 
 
-    public void refresh(Scene scene) {
+    public void refresh(Scene scene, boolean isWinning) {
         stage.minWidthProperty().bind(scene.heightProperty());
         stage.minHeightProperty().bind(scene.widthProperty());
         stage.setScene(scene);
-        stage.setTitle(currentPlayer.getPiece().getName() + "'s turn" + (currentPlayer instanceof AIPlayer ? "(Bot)" : ""));
+        if (isWinning)
+            stage.setTitle(currentPlayer.getPiece().getName() + " Won" + (currentPlayer instanceof AIPlayer ? "(Bot)" : ""));
+        else
+            stage.setTitle(currentPlayer.getPiece().getName() + "'s turn" + (currentPlayer instanceof AIPlayer ? "(Bot)" : ""));
+
         stage.show();
     }
 

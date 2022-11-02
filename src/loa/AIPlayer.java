@@ -15,26 +15,26 @@ public class AIPlayer extends Player {
     @Override
     public Callable<Pair<Pair<Integer, Integer>, Pair<Integer, Integer>>> move(GameState state, Board board) {
         return () -> {
-            int i1 = 0, j1 = 0, i2 = 0, j2 = 0;
+            int sourceRow = 0, sourceColumn = 0, targetRow = 0, targetColumn = 0;
             int alpha = Integer.MIN_VALUE, beta = Integer.MAX_VALUE;
-            for (int i = 0; i < state.dimension; i++)
-                for (int j = 0; j < state.dimension; j++)
-                    if (state.getState(i, j).equals(Optional.of(piece))) {
-                        ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
+            for (int row = 0; row < state.getDimension(); row++)
+                for (int column = 0; column < state.getDimension(); column++)
+                    if (state.getState(row, column).equals(Optional.of(piece))) {
+                        ArrayList<Pair<Integer, Integer>> nextMoves = state.findAll(row, column).get(1);
                         for (Pair<Integer, Integer> nextMove : nextMoves) {
                             GameState g = new GameState(state);
-                            g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
+                            g.transferPiece(row, column, nextMove.getKey(), nextMove.getValue());
                             int x = minValue(g, alpha + 1, beta, 3);
                             if (x > alpha) {
                                 alpha = x;
-                                i1 = i;
-                                j1 = j;
-                                i2 = nextMove.getKey();
-                                j2 = nextMove.getValue();
+                                sourceRow = row;
+                                sourceColumn = column;
+                                targetRow = nextMove.getKey();
+                                targetColumn = nextMove.getValue();
                             }
                         }
                     }
-            return new Pair<>(new Pair<>(i1, j1), new Pair<>(i2, j2));
+            return new Pair<>(new Pair<>(sourceRow, sourceColumn), new Pair<>(targetRow, targetColumn));
         };
     }
 
@@ -47,13 +47,13 @@ public class AIPlayer extends Player {
 
 
         int v = Integer.MIN_VALUE + 1;
-        for (int i = 0; i < state.dimension; i++)
-            for (int j = 0; j < state.dimension; j++)
-                if (state.getState(i, j).equals(Optional.of(piece))) {
-                    ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
+        for (int row = 0; row < state.getDimension(); row++)
+            for (int column = 0; column < state.getDimension(); column++)
+                if (state.getState(row, column).equals(Optional.of(piece))) {
+                    ArrayList<Pair<Integer, Integer>> nextMoves = state.findAll(row, column).get(1);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
-                        g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
+                        g.transferPiece(row, column, nextMove.getKey(), nextMove.getValue());
                         v = Integer.max(v, minValue(g, alpha, beta, level - 1) - 1);
                         if (v >= beta) return v;
                         alpha = Integer.max(alpha, v);
@@ -70,13 +70,13 @@ public class AIPlayer extends Player {
         if (level <= 0) return utility(state, piece) - utility(state, piece.getOtherPiece());
 
         int v = Integer.MAX_VALUE;
-        for (int i = 0; i < state.dimension; i++)
-            for (int j = 0; j < state.dimension; j++)
-                if (state.getState(i, j).equals(Optional.of(piece.getOtherPiece()))) {
-                    ArrayList<Pair<Integer, Integer>> nextMoves = state.findNext(i, j);
+        for (int row = 0; row < state.getDimension(); row++)
+            for (int column = 0; column < state.getDimension(); column++)
+                if (state.getState(row, column).equals(Optional.of(piece.getOtherPiece()))) {
+                    ArrayList<Pair<Integer, Integer>> nextMoves = state.findAll(row, column).get(1);
                     for (Pair<Integer, Integer> nextMove : nextMoves) {
                         GameState g = new GameState(state);
-                        g.transferPiece(i, j, nextMove.getKey(), nextMove.getValue());
+                        g.transferPiece(row, column, nextMove.getKey(), nextMove.getValue());
                         v = Integer.min(v, maxValue(g, alpha, beta, level - 1));
                         if (v <= alpha) return v;
                         beta = Integer.min(beta, v);
@@ -94,7 +94,7 @@ public class AIPlayer extends Player {
         int compNo = comp.getKey();
         return gameState.getDensity(x, y, piece)
                 + gameState.getQuad(x, y, piece)
-                + gameState.dimension * compSize
+                + gameState.getDimension() * compSize
                 + 10 * gameState.getMobility(piece)
                 + 50 * gameState.getPST(piece)
                 - gameState.getArea(piece) / 2

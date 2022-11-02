@@ -11,17 +11,19 @@ import javafx.scene.shape.Rectangle;
 import javafx.util.Pair;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Optional;
+import java.util.stream.IntStream;
 
 public class Board {
 
     private enum Cell {
-        WHITE_CELL     (Color.rgb(171, 143, 123)),
-        BLACK_CELL     (Color.rgb(224, 172, 134)),
-        CAPTURING_CELL (Color.rgb(255, 0,   0,   .5)),
-        END_CELL       (Color.rgb(0,   255, 0,   .5)),
-        IN_PATH_CELL   (Color.rgb(0,   0,   255, .2)),
-        SELECTED_CELL  (Color.rgb(0,   255, 0,   .2));
+        WHITE_CELL(Color.rgb(171, 143, 123)),
+        BLACK_CELL(Color.rgb(224, 172, 134)),
+        SOURCE_CELL(Color.rgb(0, 255, 0, .2)),
+        IN_PATH_CELL(Color.rgb(0, 0, 255, .2)),
+        TARGET_CELL(Color.rgb(0, 255, 0, .5)),
+        CAPTURING_CELL(Color.rgb(255, 0, 0, .5));
 
         public final Color cellColor;
 
@@ -29,7 +31,6 @@ public class Board {
             this.cellColor = color;
         }
     }
-
 
     private static class CheckerBox {
         public Optional<Cell> maybeOverriddenCell = Optional.empty();
@@ -51,9 +52,9 @@ public class Board {
             for (int j = 0; j < dimension; j++)
                 grid[i][j] = new CheckerBox();
         for (int i = 1; i < dimension - 1; i++) {
-            addPiece(i, 0,             Piece.WHITE);
+            addPiece(i, 0, Piece.WHITE);
+            addPiece(0, i, Piece.BLACK);
             addPiece(i, dimension - 1, Piece.WHITE);
-            addPiece(0, i,             Piece.BLACK);
             addPiece(dimension - 1, i, Piece.BLACK);
         }
     }
@@ -92,36 +93,30 @@ public class Board {
                                         System.out.println("clicked on " + finalI + ", " + finalJ);
                                         synchronized (currentPlayer) {
                                             if (currentPlayer.chosenMove == null) {
+                                                this.makePlain();
                                                 if (currentPlayer.destination.stream().anyMatch(cell -> cell.getKey() == finalI && cell.getValue() == finalJ)) {
-                                                    this.makePlain();
                                                     currentPlayer.chosenMove = new Pair<>(currentPlayer.source, new Pair<>(finalI, finalJ));
                                                 } else {
-                                                    this.makePlain();
                                                     if (this.grid[finalI][finalJ].maybePiece.equals(Optional.of(currentPlayer.piece))) {
-                                                        var all = this.match.gameState.findAll(finalI, finalJ);
-                                                        this.overrideCell(finalI, finalJ, Cell.SELECTED_CELL);
-                                                        for (Pair<Integer, Integer> p : all.get(0)) {
-                                                            this.overrideCell(p.getKey(), p.getValue(), Cell.IN_PATH_CELL);
-                                                        }
-                                                        for (Pair<Integer, Integer> p : all.get(1)) {
-                                                            this.overrideCell(p.getKey(), p.getValue(), Cell.END_CELL);
-                                                        }
-                                                        for (Pair<Integer, Integer> p : all.get(2)) {
-                                                            this.overrideCell(p.getKey(), p.getValue(), Cell.CAPTURING_CELL);
-                                                        }
+                                                        this.overrideCell(finalI, finalJ, Cell.SOURCE_CELL);
+
+                                                        var relevantCells = this.match.gameState.findAll(finalI, finalJ);
+                                                        final var cellTypes = Arrays.asList(Cell.IN_PATH_CELL, Cell.TARGET_CELL, Cell.CAPTURING_CELL);
+                                                        IntStream.range(0, relevantCells.size()).forEach(idx ->
+                                                                relevantCells.get(idx).forEach(cell -> this.overrideCell(cell.getKey(), cell.getValue(), cellTypes.get(idx)))
+                                                        );
 
                                                         currentPlayer.source = new Pair<>(finalI, finalJ);
-                                                        currentPlayer.destination = all.get(1);
+                                                        currentPlayer.destination = relevantCells.get(1);
                                                     } else {
                                                         currentPlayer.destination = new ArrayList<>();
                                                     }
-                                                    this.match.refresh(match.getBoardScene());
+                                                    this.match.refresh(match.getBoardScene(), false);
                                                 }
                                             }
                                         }
                                     }
                                 }
-
                         )
                 );
                 gridPane.add(stackPanes[i][j], j, i);
@@ -129,24 +124,24 @@ public class Board {
         return gridPane;
     }
 
-    void overrideCell(int i, int j, Cell cell)
-    {
+    void overrideCell(int i, int j, Cell cell) {
         this.grid[i][j].maybeOverriddenCell = Optional.of(cell);
     }
 
-    void removeOverriddenBackground(int i, int j) {
+    void removeOverriddenCells(int i, int j) {
         grid[i][j].maybeOverriddenCell = Optional.empty();
     }
 
     void makePlain() {
         for (int i = 0; i < dimension; i++)
             for (int j = 0; j < dimension; j++)
-                removeOverriddenBackground(i, j);
+                removeOverriddenCells(i, j);
     }
 
     void addPiece(int i, int j, Piece piece) {
         grid[i][j].maybePiece = Optional.of(piece);
     }
+
     void removePiece(int i, int j) {
         grid[i][j].maybePiece = Optional.empty();
     }
