@@ -26,6 +26,7 @@ public class ManualPlayer extends Player {
                     if (chosenMove != null) {
                         var returnValue = chosenMove;
                         chosenMove = null;
+                        destination = new ArrayList<>();
                         return returnValue;
                     }
                 }
@@ -33,24 +34,4 @@ public class ManualPlayer extends Player {
         };
     }
 
-
-    public ArrayList<Pair<Integer, Integer>> getDestination() {
-        return destination;
-    }
-
-    public void setDestination(ArrayList<Pair<Integer, Integer>> destination) {
-        this.destination = destination;
-    }
-
-    public void setSource(Pair<Integer, Integer> source) {
-        this.source = source;
-    }
-
-    public int getX() {
-        return source.getKey();
-    }
-
-    public int getY() {
-        return source.getValue();
-    }
 }

@@ -19,14 +19,12 @@ public class Main extends Application {
                     System.exit(0);
                 }
         );
-        match = new Match(8, primaryStage, new AIPlayer(Piece.BLACK), new AIPlayer(Piece.WHITE));
+        match = new Match(8, primaryStage, new ManualPlayer(Piece.BLACK), new AIPlayer(Piece.WHITE));
         match.refresh(match.getBoardScene());
         new Thread(() -> {
             try {
                 match.continueMatch();
-            } catch (ExecutionException e) {
-                throw new RuntimeException(e);
-            } catch (InterruptedException e) {
+            } catch (ExecutionException | InterruptedException e) {
                 throw new RuntimeException(e);
             }
         }

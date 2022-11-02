@@ -27,7 +27,7 @@ public class Board {
 
     }
 
-    private Match match;
+    private final Match match;
 
     private final int dimension;
     private CheckerBox[][] grid;
@@ -77,8 +77,7 @@ public class Board {
                         MouseEvent.MOUSE_PRESSED,
                         event -> Platform.runLater(
                                 () -> {
-                                    if (this.match.currentPlayer instanceof ManualPlayer) {
-                                        var currentPlayer = (ManualPlayer) this.match.currentPlayer;
+                                    if (this.match.currentPlayer instanceof ManualPlayer currentPlayer) {
                                         System.out.println("clicked on " + finalI + ", " + finalJ);
                                         synchronized (currentPlayer) {
                                             if (currentPlayer.chosenMove == null) {
