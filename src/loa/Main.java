@@ -20,7 +20,7 @@ public class Main extends Application {
                     System.exit(0);
                 }
         );
-        match = new Match(8, primaryStage, new AIPlayer(Piece.BLACK), new AIPlayer(Piece.WHITE));
+        match = new Match(8, primaryStage, new ManualPlayer(Piece.BLACK), new ManualPlayer(Piece.WHITE));
         match.refresh(match.getBoardScene(), false);
         new Thread(() -> match.continueMatch()).start();
     }
