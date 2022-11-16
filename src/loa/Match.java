@@ -42,10 +42,7 @@ public class Match {
             return;
         }
 
-
         Pair<Pair<Integer, Integer>, Pair<Integer, Integer>> result = currentPlayer.move(gameState, board);
-
-
         int sourceRow = result.getKey().getKey();
         int sourceColumn = result.getKey().getValue();
         int targetRow = result.getValue().getKey();
